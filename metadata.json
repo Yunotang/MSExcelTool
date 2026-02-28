@@ -1,0 +1,5 @@
+{
+  "name": "Remix: Excel Merge Tool",
+  "description": "A tool to merge multiple Excel files using a VLOOKUP-like feature.",
+  "requestFramePermissions": []
+}

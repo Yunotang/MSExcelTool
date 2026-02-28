@@ -1,0 +1,20 @@
+# Node.js
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Python
+__pycache__/
+venv/
+.venv/
+*.pyc
+backend/__pycache__/
+backend/venv/
+
+# Database
+backend/excel_tool.db
