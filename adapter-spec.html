@@ -1,0 +1,86 @@
+<title>Adapter 規格</title>
+<style>
+:root{--bg:#EAEDF1;--card:#FFF;--ink:#12171F;--dim:#5A6472;--line:#D2D8E0;
+--copper:#A6521F;--teal:#2C6B79;--ok:#2C7A57;--warn:#B5761A;--crit:#B33A2B;
+--disp:"Bahnschrift","DIN Alternate","Segoe UI","Microsoft JhengHei UI",sans-serif;
+--body:"Segoe UI","Microsoft JhengHei UI","PingFang TC",system-ui,sans-serif;
+--mono:"Cascadia Mono","Consolas",monospace}
+@media(prefers-color-scheme:dark){:root{--bg:#0E1218;--card:#171D26;--ink:#E5E9EF;--dim:#9AA5B3;
+--line:#2A323D;--copper:#D98545;--teal:#4FA3B5;--ok:#4CA97C;--warn:#D9A03F;--crit:#E06B57}}
+:root[data-theme=dark]{--bg:#0E1218;--card:#171D26;--ink:#E5E9EF;--dim:#9AA5B3;--line:#2A323D;
+--copper:#D98545;--teal:#4FA3B5;--ok:#4CA97C;--warn:#D9A03F;--crit:#E06B57}
+:root[data-theme=light]{--bg:#EAEDF1;--card:#FFF;--ink:#12171F;--dim:#5A6472;--line:#D2D8E0;
+--copper:#A6521F;--teal:#2C6B79;--ok:#2C7A57;--warn:#B5761A;--crit:#B33A2B}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.72}
+main{max-width:780px;margin:0 auto;padding:48px 22px 80px;display:flex;flex-direction:column;gap:24px}
+h1{font-family:var(--disp);font-size:clamp(36px,7vw,60px);line-height:1.02;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--disp);font-size:21px;margin:0 0 12px}
+h3{font-family:var(--disp);font-size:16px;margin:16px 0 6px;color:var(--copper)}
+p{margin:0 0 10px;color:var(--dim)}
+p.lede{color:var(--ink);font-size:18px;max-width:60ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:22px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;
+background:var(--line);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.facts div{background:var(--card);padding:16px 18px}
+.facts b{display:block;font-family:var(--disp);font-size:32px;line-height:1;
+color:var(--copper);font-variant-numeric:tabular-nums}
+.facts span{font-size:12.5px;color:var(--dim);display:block;margin-top:6px;line-height:1.45}
+ul{margin:0 0 10px;padding-left:20px;color:var(--dim)} li{margin-bottom:5px}
+.tw{overflow-x:auto}
+table{width:100%;min-width:420px;border-collapse:collapse;font-size:14.5px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--disp);font-size:13px;color:var(--dim);background:rgba(128,128,128,.07)}
+tr:last-child td{border-bottom:0}
+code{font-family:var(--mono);font-size:13.5px;color:var(--copper)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+/* quiz */
+.q{margin-bottom:22px} .q:last-child{margin-bottom:0}
+.q p.qt{color:var(--ink);font-family:var(--disp);font-size:16px;margin-bottom:10px}
+.opt{display:block;width:100%;text-align:left;background:var(--bg);color:var(--ink);
+border:1px solid var(--line);border-radius:4px;padding:10px 13px;margin-bottom:7px;transition:.15s}
+.opt:hover{border-color:var(--copper)}
+.opt.right{border-color:var(--ok);color:var(--ok)}
+.opt.wrong{border-color:var(--crit);color:var(--crit);opacity:.75}
+.why{display:none;font-size:13.5px;color:var(--dim);border-left:2px solid var(--copper);
+padding-left:12px;margin-top:8px}
+.q.done .why{display:block}
+.score{font-family:var(--mono);font-size:13px;color:var(--dim);margin-top:16px}
+/* slider */
+label{display:flex;justify-content:space-between;font-family:var(--disp);font-size:15px;margin:16px 0 6px}
+label b{font-family:var(--mono);color:var(--copper)}
+input[type=range]{width:100%;accent-color:var(--copper)}
+.out{display:flex;gap:26px;margin:22px 0 12px;flex-wrap:wrap}
+.out>div{flex:1;min-width:110px}
+.out span{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--dim)}
+.out b{display:block;font-family:var(--disp);font-size:38px;line-height:1;font-variant-numeric:tabular-nums}
+.bar{height:12px;border-radius:99px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;transition:.25s}
+#msg{margin-top:14px;font-size:15px;color:var(--ink)}
+/* compare */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{background:var(--bg);border:1px solid var(--line);color:var(--dim);
+padding:7px 13px;border-radius:99px;font-family:var(--disp);font-size:13.5px;transition:.15s}
+.chip:hover{border-color:var(--copper);color:var(--ink)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.vb{font-family:var(--disp);font-size:14px;letter-spacing:.06em;border:1px solid currentColor;
+padding:8px 14px;border-radius:4px;display:inline-block;margin-bottom:10px}
+.lv-ok{color:var(--ok)} .lv-warn{color:var(--warn)} .lv-crit{color:var(--crit)}
+.src{font-size:13.5px} .src a{color:var(--teal)} .src li{margin-bottom:6px}
+.foot{font-family:var(--mono);font-size:11.5px;color:var(--dim);
+border-top:1px solid var(--line);padding-top:16px}
+@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+<main><header><h1>Adapter 規格</h1><p class="lede">電源 Adapter（變壓器）的規格分成三層：<b>電氣</b>（多少電）、<b>機構</b>（插頭長什麼樣）、<b>法規</b>（能效與安規）。三層任一層不合，機器就不能用或不能賣。</p></header><div class="facts"><div><b>240W</b><span>USB-C PD 3.1 EPR 的功率上限（48V × 5A）</span></div><div><b>48V</b><span>EPR 新增的最高電壓，原本只到 20V</span></div><div><b>100mW</b><span>EU CoC Tier 2 的空載功耗天花板</span></div><div><b>0.4mm</b><span>5.5×2.5 與 5.5×2.1 的孔徑差，最常見的誤插來源</span></div></div><div class="card"><h2>第一層：電氣規格</h2><p>看銘牌就找得到，四項全部要對。</p><div class="tw"><table><thead><tr><th>項目</th><th>常見值</th><th>不對會怎樣</th></tr></thead><tbody><tr><td>輸出電壓 V</td><td><code>5V</code> / <code>12V</code> / <code>19V</code> / <code>19.5V</code> / <code>20V</code></td><td>太高燒輸入級；太低開不了機或強制降頻</td></tr><tr><td>輸出電流 A</td><td><code>2A</code> ~ <code>11.8A</code></td><td>與電壓相乘決定瓦數</td></tr><tr><td>功率 W</td><td><code>45W</code> / <code>65W</code> / <code>90W</code> / <code>120W</code> / <code>230W</code></td><td>不足 → 只有高負載才當機，最難重現的客訴</td></tr><tr><td>極性</td><td>中心針 <code>+</code>、外殼 <code>−</code>（業界慣例）</td><td>反接 → 插下去就冒煙</td></tr><tr><td>輸入範圍</td><td><code>100–240V~ 50/60Hz</code>（全球通用）</td><td>只支援單一電壓的機種帶出國會燒毀</td></tr></tbody></table></div><p>另外還有兩項容易被忽略：<b>連漪電壓（ripple）</b>影響系統穩定度，<b>線徑 AWG 與線長</b>決定壓降——同樣 19V，線太細太長到機器端可能只剩 18V。</p></div><div class="card"><h2>第二層：機構規格（接頭型式）</h2><p>這一層最亂。電壓瓦數對了，插頭插不進去或插進去接觸不良，一樣沒用。</p><div class="tw"><table><thead><tr><th>型式</th><th>尺寸</th><th>特徵</th></tr></thead><tbody><tr><td>通用桶狀 Barrel</td><td>5.5×2.5mm、5.5×2.1mm</td><td>市面最泛用，也最容易誤插——差 0.4mm 看不出來</td></tr><tr><td>Dell / HP 桶狀</td><td>7.4×5.0mm（舊）、4.5×3.0mm（新）</td><td><b>中心多一根 ID 針</b>，用來辨識原廠與瓦數</td></tr><tr><td>Lenovo Slim Tip</td><td>7.5×3.0mm 長方形</td><td>扁平方形，非圓孔，完全不可能誤插他牌</td></tr><tr><td>Lenovo Square</td><td>10.5×4.2mm</td><td>舊款 ThinkPad 方形接頭</td></tr><tr><td>小型設備</td><td>4.0×1.7mm、3.5×1.35mm</td><td>路由器、小家電、Mini PC 常見</td></tr><tr><td>USB-C PD</td><td>Type-C 24 pin</td><td>唯一有<b>雙向協商</b>能力的，正反可插</td></tr></tbody></table></div><p>Dell 與 HP 的中心 ID 針是雙面刃：能擋掉雜牌變壓器，但那條細訊號線一斷，主機就跳「無法辨識變壓器」並強制降頻——機器沒壞，只是變慢，這種客訴最難處理。</p></div><div class="card"><h2>第三層：能效與安規</h2><h3>能效等級（決定能不能賣）</h3><div class="tw"><table><thead><tr><th>標準</th><th>地區</th><th>重點</th></tr></thead><tbody><tr><td>DoE Level VI</td><td>美國，<b>強制</b></td><td>看多個負載點的平均主動效率</td></tr><tr><td>EU CoC Tier 2</td><td>歐盟，自願但業界視為門檻</td><td>多一個 <b>10% 負載</b>的效率要求；空載上限 <code>100mW</code></td></tr><tr><td>ErP Lot 6</td><td>歐盟，強制</td><td>待機與空載功耗規範</td></tr></tbody></table></div><p>CoC Tier 2 在 49W 以下的機種通常比 DoE Level VI 更嚴。說明書必須揭露平均主動效率、10% 負載效率、空載功耗三個數字。</p><h3>安規認證（決定能不能進關）</h3><ul><li><b>UL / cUL</b>（美加）、<b>CE</b>（歐盟）、<b>BSMI</b>（台灣）、<b>PSE</b>（日本）、<b>CCC</b>（中國）</li><li>外殼阻燃等級 <b>UL 94 V-0</b>——2004 年 IBM 召回的原因正是「過熱熔穿外殼」</li><li>醫療用另有 <b>IEC 60601</b>，漏電流要求遠嚴於一般 ITE</li></ul></div><div class="card"><h2>接頭型式，選一個看它的坑</h2><p>同樣是把電送進機器，五種做法的風險完全不同。</p><div class="chips"><button class="chip">通用 Barrel 5.5×2.5</button><button class="chip">Dell / HP 含 ID 針</button><button class="chip">Lenovo Slim Tip 方形</button><button class="chip">小型 4.0×1.7 / 3.5×1.35</button><button class="chip">USB-C PD</button></div><div id="cmp"></div></div><div class="card src"><h2>資料來源</h2><ol><li><a href="https://www.graniteriverlabs.com/en-us/technical-blog/usb-power-delivery-specification-3-1" target="_blank" rel="noopener">GraniteRiverLabs — Introduction to PD 3.1, the Latest USB-IF Power Delivery Specification</a></li><li><a href="https://www.renesas.com/en/document/apn/usb-c-240w-power-delivery-31-extended-power-range-protocol" target="_blank" rel="noopener">Renesas — USB-C 240W Power Delivery 3.1 Extended Power Range Protocol</a></li><li><a href="https://www.belfuse.com/resource-library/tech-paper/efficiency-standards-for-external-power-supplies" target="_blank" rel="noopener">Bel Fuse — Efficiency Standards for External Power Supplies</a></li><li><a href="https://xjkadapter.com/doe-level-vi-and-eu-coc-tier-2-energy-efficiency-standards/" target="_blank" rel="noopener">XJK Power — DOE Level VI and EU CoC Tier 2 energy efficiency standards</a></li><li><a href="https://www.upgrade-my-laptop.com/guides/laptop-support/laptop-charger-connectors-slim-tip-blue-tip-4-5x3-0-usb-c-pd-buyers-guide/" target="_blank" rel="noopener">Upgrade My Laptop — Laptop Charger Connectors: Slim Tip / Blue Tip / 4.5×3.0 / USB-C PD</a></li><li><a href="https://blog.voltaicsystems.com/laptop-adapter-guide/" target="_blank" rel="noopener">Voltaic Systems — Laptop Adapter Guide</a></li><li><a href="https://www.cpsc.gov/Recalls/2004/cpsc-ibm-announce-recall-of-ac-adapters-for-notebook-computers" target="_blank" rel="noopener">CPSC — IBM Recall of AC Adapters for Notebook Computers (2004)</a></li></ol></div><p class="foot">USB-C PD 3.1 EPR 於 2021 年 5 月由 USB-IF 正式批准；DoE Level VI 為美國強制、EU CoC Tier 2 為自願性但被業界視為實質門檻。</p></main><script>
+const ITEMS=[{"label": "通用 Barrel 5.5×2.5", "level": "crit", "title": "最便宜，也最危險", "body": "市面上一堆 12V、19V、24V 的變壓器共用同一個孔徑，極性還可能相反。使用者拿錯一插就燒。若產品採用這個規格，主板端<b>必須</b>自己做過壓與反接保護，不能指望使用者看銘牌。"}, {"label": "Dell / HP 含 ID 針", "level": "warn", "title": "擋得住雜牌，擋不住自己壞", "body": "中心針裡的識別晶片能確認原廠與瓦數，但多一根針就是多一個失效點。細訊號線斷裂 → 跳「無法辨識變壓器」→ <b>CPU 強制降頻、電池不充電</b>。機器還能開，使用者卻覺得被騙，是最難安撫的一種客訴。"}, {"label": "Lenovo Slim Tip 方形", "level": "warn", "title": "防呆做得好，維修彈性差", "body": "扁平長方形接頭，物理上不可能插到別家的孔，誤插風險等於零。代價是完全綁定原廠，使用者在外地弄丟變壓器幾乎買不到替代品，且專屬模具成本較高。"}, {"label": "小型 4.0×1.7 / 3.5×1.35", "level": "warn", "title": "電流餘裕小", "body": "體積小、接觸面積也小，能承受的電流有限，通常只用在 45W 以下。用在高瓦數機種上會直接踩進 <code>P = I²R</code> 的發熱陷阱。"}, {"label": "USB-C PD", "level": "ok", "title": "目前最好的答案", "body": "唯一有<b>雙向協商</b>能力的規格：機器與變壓器會先談好電壓電流才送電，所以插錯不會燒。PD 3.1 EPR 加入 28V / 36V / 48V，上限拉到 <b>240W（48V × 5A）</b>，已經涵蓋絕大多數桌機與電競機種。缺點是線材本身也要符規——240W 需要 EPR 認證線。"}];
+const box=document.getElementById('cmp');
+function show(i){
+  const it=ITEMS[i];
+  document.querySelectorAll('.chip').forEach((c,j)=>c.classList.toggle('on',i===j));
+  const lv={ok:['安全','lv-ok'],warn:['警告','lv-warn'],crit:['危險','lv-crit']}[it.level];
+  box.innerHTML=`<div class="vb ${lv[1]}">${lv[0]}</div><h3 style="margin-top:0">${it.title}</h3><p>${it.body}</p>`;
+}
+document.querySelectorAll('.chip').forEach((c,i)=>c.addEventListener('click',()=>show(i)));
+show(0);
+</script>

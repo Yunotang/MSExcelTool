@@ -1,0 +1,988 @@
+<title>DC-IN Plug 失效分析簡報</title>
+
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --ground:#E7EAEE;
+  --surface:#F8F9FB;
+  --surface-2:#EFF2F5;
+  --ink:#12171F;
+  --ink-2:#4E5867;
+  --ink-3:#7C8695;
+  --line:#CFD5DD;
+  --line-soft:#DEE3E9;
+  --accent:#A6521F;         /* 銅 */
+  --accent-hi:#C4692D;
+  --accent-soft:#F0E2D8;
+  --patina:#2C6B79;         /* 銅綠 */
+  --ok:#2C7A57;
+  --warn:#B5761A;
+  --crit:#B33A2B;
+  --pcb:#1E4438;
+  --metal:#B9915F;
+  --metal-2:#8E6B3C;
+  --shadow:0 1px 2px rgba(18,23,31,.06), 0 8px 24px -12px rgba(18,23,31,.18);
+
+  --font-display:"Bahnschrift","DIN Alternate","Segoe UI Variable Display","Segoe UI Semibold","Microsoft JhengHei UI","PingFang TC",system-ui,sans-serif;
+  --font-body:"Segoe UI Variable Text","Segoe UI","Microsoft JhengHei UI","PingFang TC","Noto Sans TC",system-ui,sans-serif;
+  --font-mono:"Cascadia Mono","Consolas","SF Mono",ui-monospace,monospace;
+
+  --r:4px;
+  --maxw:1080px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ground:#0D1117;
+    --surface:#151A22;
+    --surface-2:#1C222B;
+    --ink:#E5E9EF;
+    --ink-2:#A2ACBA;
+    --ink-3:#6F7987;
+    --line:#2A323D;
+    --line-soft:#222A34;
+    --accent:#D98545;
+    --accent-hi:#EFA168;
+    --accent-soft:#2E2119;
+    --patina:#4FA3B5;
+    --ok:#4CA97C;
+    --warn:#D9A03F;
+    --crit:#E06B57;
+    --pcb:#123128;
+    --metal:#C79B62;
+    --metal-2:#7A5C34;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1117; --surface:#151A22; --surface-2:#1C222B;
+  --ink:#E5E9EF; --ink-2:#A2ACBA; --ink-3:#6F7987;
+  --line:#2A323D; --line-soft:#222A34;
+  --accent:#D98545; --accent-hi:#EFA168; --accent-soft:#2E2119;
+  --patina:#4FA3B5; --ok:#4CA97C; --warn:#D9A03F; --crit:#E06B57;
+  --pcb:#123128; --metal:#C79B62; --metal-2:#7A5C34;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -14px rgba(0,0,0,.7);
+}
+:root[data-theme="light"]{
+  --ground:#E7EAEE; --surface:#F8F9FB; --surface-2:#EFF2F5;
+  --ink:#12171F; --ink-2:#4E5867; --ink-3:#7C8695;
+  --line:#CFD5DD; --line-soft:#DEE3E9;
+  --accent:#A6521F; --accent-hi:#C4692D; --accent-soft:#F0E2D8;
+  --patina:#2C6B79; --ok:#2C7A57; --warn:#B5761A; --crit:#B33A2B;
+  --pcb:#1E4438; --metal:#B9915F; --metal-2:#8E6B3C;
+  --shadow:0 1px 2px rgba(18,23,31,.06), 0 8px 24px -12px rgba(18,23,31,.18);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--font-body); font-size:16px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px}
+p{margin:0 0 1em; max-width:66ch}
+a{color:var(--accent); text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+
+/* ============ NAV ============ */
+.nav{
+  position:sticky; top:0; z-index:40;
+  background:color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.nav-in{display:flex; align-items:center; gap:6px; overflow-x:auto; padding:9px 24px; max-width:var(--maxw); margin:0 auto}
+.nav-mark{
+  font-family:var(--font-display); font-size:13px; letter-spacing:.14em;
+  color:var(--accent); padding-right:14px; margin-right:6px; border-right:1px solid var(--line);
+  white-space:nowrap; flex:none;
+}
+.nav a{
+  font-family:var(--font-display); font-size:13px; letter-spacing:.05em;
+  color:var(--ink-2); text-decoration:none; padding:5px 10px; border-radius:var(--r);
+  white-space:nowrap; flex:none;
+}
+.nav a:hover{background:var(--surface-2); color:var(--ink)}
+.nav a.on{background:var(--accent); color:var(--surface)}
+
+/* ============ HERO ============ */
+.hero{padding:64px 0 40px; border-bottom:1px solid var(--line)}
+.eyebrow{
+  font-family:var(--font-display); font-size:12px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--accent); margin:0 0 18px;
+}
+h1{
+  font-family:var(--font-display); font-weight:600;
+  font-size:clamp(48px,9vw,104px); line-height:.92; letter-spacing:-.01em;
+  margin:0 0 20px; text-wrap:balance;
+}
+h1 .dim{color:var(--ink-3)}
+.lede{font-size:19px; color:var(--ink-2); max-width:56ch; margin:0}
+
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); margin-top:44px}
+.stat{background:var(--surface); padding:18px 20px}
+.stat b{display:block; font-family:var(--font-display); font-size:38px; line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.stat span{display:block; font-size:12.5px; color:var(--ink-3); margin-top:8px; line-height:1.45}
+.stat.c b{color:var(--crit)}
+.stat.a b{color:var(--accent)}
+
+/* ============ SECTIONS ============ */
+section{padding:60px 0; border-bottom:1px solid var(--line-soft)}
+.sec-label{
+  font-family:var(--font-mono); font-size:12px; letter-spacing:.1em;
+  color:var(--ink-3); margin:0 0 10px;
+}
+h2{
+  font-family:var(--font-display); font-weight:600; font-size:clamp(28px,4.2vw,40px);
+  line-height:1.12; letter-spacing:-.005em; margin:0 0 8px; text-wrap:balance;
+}
+.sec-sub{color:var(--ink-2); font-size:17px; margin:0 0 30px; max-width:60ch}
+h3{font-family:var(--font-display); font-weight:600; font-size:19px; margin:0 0 8px; letter-spacing:.01em}
+
+/* ============ GENERIC CARD ============ */
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow)}
+.pad{padding:22px 24px}
+
+/* ============ AC/DC FLOW ============ */
+.flow{display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin:0 0 22px}
+.flow-node{
+  flex:1 1 150px; background:var(--surface); border:1px solid var(--line);
+  padding:16px 18px; position:relative;
+}
+.flow-node + .flow-node{border-left:none}
+.flow-node .k{font-family:var(--font-mono); font-size:11px; color:var(--ink-3); letter-spacing:.08em}
+.flow-node .t{font-family:var(--font-display); font-size:17px; margin-top:4px}
+.flow-node .d{font-size:13px; color:var(--ink-2); margin-top:6px; line-height:1.5}
+.flow-node.hot{border-color:var(--accent); background:var(--accent-soft)}
+.flow-node.hot .t{color:var(--accent)}
+@media (max-width:640px){ .flow-node + .flow-node{border-left:1px solid var(--line); border-top:none} }
+
+/* ============ ANATOMY ============ */
+.anat{display:grid; grid-template-columns:1.35fr .9fr; gap:24px; align-items:start}
+@media (max-width:860px){ .anat{grid-template-columns:1fr} }
+.anat-svg{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:8px; overflow-x:auto}
+.anat-svg svg{display:block; width:100%; min-width:520px; height:auto}
+.cal{cursor:pointer}
+.cal circle{fill:var(--surface); stroke:var(--ink-2); stroke-width:1.6; transition:fill .15s, stroke .15s}
+.cal text{fill:var(--ink-2); font-family:var(--font-mono); font-size:12px; font-weight:700}
+.cal line{stroke:var(--ink-3); stroke-width:1; stroke-dasharray:3 3}
+.cal:hover circle, .cal.on circle{fill:var(--accent); stroke:var(--accent)}
+.cal:hover text, .cal.on text{fill:#fff}
+.part{transition:opacity .18s}
+.dim-out .part:not(.lit){opacity:.28}
+.parts{display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+.part-btn{
+  display:flex; gap:12px; align-items:flex-start; text-align:left; width:100%;
+  background:var(--surface); border:0; padding:12px 14px; cursor:pointer;
+  font:inherit; color:var(--ink); transition:background .15s;
+}
+.part-btn:hover{background:var(--surface-2)}
+.part-btn.on{background:var(--accent-soft)}
+.part-btn .num{
+  flex:none; width:22px; height:22px; border-radius:50%; margin-top:3px;
+  background:var(--ink-3); color:var(--surface); font-family:var(--font-mono); font-size:11px; font-weight:700;
+  display:grid; place-items:center;
+}
+.part-btn.on .num{background:var(--accent); color:#fff}
+.part-btn .nm{font-family:var(--font-display); font-size:15.5px; line-height:1.3}
+.part-btn .ds{font-size:13px; color:var(--ink-2); line-height:1.5; margin-top:3px}
+.part-btn .rk{font-family:var(--font-mono); font-size:10.5px; letter-spacing:.06em; color:var(--crit); margin-top:5px; display:block}
+
+/* ============ TABLE ============ */
+.tblwrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--r); background:var(--surface)}
+table{border-collapse:collapse; width:100%; min-width:560px; font-size:14.5px}
+th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line-soft); vertical-align:top}
+th{font-family:var(--font-display); font-weight:600; font-size:13px; letter-spacing:.05em; color:var(--ink-2); background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td code{font-family:var(--font-mono); font-size:13px; background:var(--surface-2); padding:1px 5px; border-radius:3px}
+
+/* ============ ADAPTER MATCH ============ */
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px}
+.chip{
+  font-family:var(--font-display); font-size:13.5px; letter-spacing:.02em;
+  background:var(--surface); border:1px solid var(--line); color:var(--ink-2);
+  padding:7px 13px; border-radius:100px; cursor:pointer; transition:all .15s;
+}
+.chip:hover{border-color:var(--accent); color:var(--ink)}
+.chip.on{background:var(--ink); border-color:var(--ink); color:var(--ground)}
+.verdict{display:grid; grid-template-columns:auto 1fr; gap:20px; align-items:start}
+@media (max-width:620px){ .verdict{grid-template-columns:1fr} }
+.vbadge{
+  font-family:var(--font-display); font-size:15px; letter-spacing:.08em;
+  padding:10px 16px; border-radius:var(--r); white-space:nowrap; text-align:center;
+  border:1px solid currentColor;
+}
+.v-ok{color:var(--ok)} .v-warn{color:var(--warn)} .v-crit{color:var(--crit)}
+.vbody h3{margin-bottom:6px}
+.vbody p{font-size:15px; color:var(--ink-2); margin:0}
+.vspec{font-family:var(--font-mono); font-size:12.5px; color:var(--ink-3); margin-top:10px; display:block}
+
+/* ============ THERMAL LAB ============ */
+.lab{display:grid; grid-template-columns:300px 1fr; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+@media (max-width:800px){ .lab{grid-template-columns:1fr} }
+.lab-ctl{background:var(--surface); padding:22px}
+.lab-out{background:var(--surface); padding:22px}
+.sld{margin-bottom:22px}
+.sld label{display:flex; justify-content:space-between; align-items:baseline; font-family:var(--font-display); font-size:14px; letter-spacing:.03em; margin-bottom:8px}
+.sld .val{font-family:var(--font-mono); font-size:15px; color:var(--accent); font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:22px}
+.sld .hint{font-size:12px; color:var(--ink-3); margin-top:5px; line-height:1.45}
+.btn{
+  font-family:var(--font-display); font-size:14px; letter-spacing:.05em;
+  background:var(--ink); color:var(--ground); border:0; padding:11px 18px;
+  border-radius:var(--r); cursor:pointer; width:100%; transition:opacity .15s;
+}
+.btn:hover{opacity:.85}
+.btn.ghost{background:transparent; color:var(--ink-2); border:1px solid var(--line); margin-top:8px}
+
+.readout{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px}
+@media (max-width:520px){ .readout{grid-template-columns:1fr 1fr} }
+.ro .k{font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em; color:var(--ink-3)}
+.ro .v{font-family:var(--font-display); font-size:32px; line-height:1.05; font-variant-numeric:tabular-nums; margin-top:3px}
+.ro .u{font-size:14px; color:var(--ink-3); margin-left:2px}
+.thermo{height:14px; border-radius:100px; background:var(--surface-2); overflow:hidden; border:1px solid var(--line)}
+.thermo i{display:block; height:100%; width:0; transition:width .25s, background .25s}
+.scale{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); margin-top:5px}
+.status{
+  margin-top:16px; padding:12px 14px; border-radius:var(--r);
+  font-size:14px; line-height:1.55; border:1px solid var(--line); background:var(--surface-2);
+}
+.status b{font-family:var(--font-display); letter-spacing:.04em}
+canvas{display:block; width:100%; height:150px; margin-top:18px; border:1px solid var(--line); border-radius:var(--r); background:var(--surface-2)}
+
+/* ============ FAILURE CHAIN ============ */
+.chain{display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+.link{background:var(--surface); padding:18px 16px; position:relative}
+.link .st{font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--accent)}
+.link .h{font-family:var(--font-display); font-size:16px; margin:6px 0 6px}
+.link .b{font-size:13.5px; color:var(--ink-2); line-height:1.55}
+.link:last-child{background:linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--crit) 12%, var(--surface)))}
+.link:last-child .st{color:var(--crit)}
+.loopnote{
+  margin-top:14px; font-family:var(--font-mono); font-size:12.5px; color:var(--crit);
+  display:flex; align-items:center; gap:10px;
+}
+.loopnote:before{content:""; flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--crit))}
+.loopnote:after{content:""; flex:1; height:1px; background:linear-gradient(90deg,var(--crit),transparent)}
+
+/* ============ DIAGNOSER ============ */
+.diag{display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start}
+@media (max-width:800px){ .diag{grid-template-columns:1fr} }
+.symp{display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+.symp label{display:flex; gap:11px; align-items:flex-start; background:var(--surface); padding:11px 14px; cursor:pointer; font-size:14.5px; line-height:1.5; transition:background .15s}
+.symp label:hover{background:var(--surface-2)}
+.symp input{margin:5px 0 0; accent-color:var(--accent); width:15px; height:15px; flex:none}
+.causes{display:flex; flex-direction:column; gap:10px}
+.cause{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:12px 14px}
+.cause .top{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.cause .nm{font-family:var(--font-display); font-size:15px}
+.cause .pc{font-family:var(--font-mono); font-size:13px; color:var(--accent); font-variant-numeric:tabular-nums}
+.bar{height:5px; background:var(--surface-2); border-radius:100px; margin-top:8px; overflow:hidden}
+.bar i{display:block; height:100%; background:var(--accent); width:0; transition:width .3s}
+.cause .fx{font-size:12.5px; color:var(--ink-3); margin-top:7px; line-height:1.5}
+.empty{color:var(--ink-3); font-size:14px; font-style:italic}
+
+/* ============ TIMELINE ============ */
+.tl{display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; margin-bottom:32px}
+.ev{background:var(--surface)}
+.ev-h{display:grid; grid-template-columns:74px 1fr auto; gap:14px; align-items:center; width:100%; background:none; border:0; padding:14px 16px; cursor:pointer; font:inherit; color:var(--ink); text-align:left; transition:background .15s}
+.ev-h:hover{background:var(--surface-2)}
+.yr{font-family:var(--font-display); font-size:20px; color:var(--accent); font-variant-numeric:tabular-nums; letter-spacing:.01em}
+.ev-t{font-family:var(--font-display); font-size:16px; line-height:1.3}
+.tag{font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; padding:3px 8px; border-radius:100px; border:1px solid currentColor; white-space:nowrap}
+.t-recall{color:var(--crit)} .t-design{color:var(--patina)} .t-chronic{color:var(--warn)}
+.ev-b{display:none; padding:0 16px 18px 104px; font-size:14.5px; color:var(--ink-2); line-height:1.65}
+.ev.open .ev-b{display:block}
+.ev-b ul{margin:8px 0 0; padding-left:18px}
+.ev-b li{margin-bottom:5px}
+.ev-b .lesson{
+  margin-top:12px; padding:10px 13px; border-left:2px solid var(--accent);
+  background:var(--accent-soft); color:var(--ink); font-size:14px;
+}
+.ev-b .lesson b{font-family:var(--font-display); letter-spacing:.04em; color:var(--accent)}
+
+.barchart{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:22px 24px}
+.bc-row{display:grid; grid-template-columns:190px 1fr 110px; gap:14px; align-items:center; margin-bottom:12px; font-size:14px}
+@media (max-width:640px){ .bc-row{grid-template-columns:1fr; gap:4px; margin-bottom:18px} }
+.bc-lbl{color:var(--ink-2)}
+.bc-track{height:22px; background:var(--surface-2); border-radius:2px; overflow:hidden}
+.bc-fill{height:100%; background:var(--ink-3); border-radius:2px; transition:width .8s cubic-bezier(.2,.7,.2,1)}
+.bc-fill.big{background:var(--crit)}
+.bc-num{font-family:var(--font-mono); font-size:13.5px; font-variant-numeric:tabular-nums; color:var(--ink); text-align:right}
+@media (max-width:640px){ .bc-num{text-align:left} }
+
+/* ============ CHECKLIST ============ */
+.ck{display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+.ck label{display:grid; grid-template-columns:auto 1fr; gap:13px; background:var(--surface); padding:15px 16px; cursor:pointer; transition:background .15s}
+.ck label:hover{background:var(--surface-2)}
+.ck input{margin:6px 0 0; accent-color:var(--ok); width:16px; height:16px}
+.ck .h{font-family:var(--font-display); font-size:15.5px}
+.ck .b{font-size:13.5px; color:var(--ink-2); line-height:1.55; margin-top:4px}
+.ck label:has(input:checked) .h{color:var(--ok); text-decoration:line-through; text-decoration-color:var(--line)}
+.prog{display:flex; align-items:center; gap:14px; margin-top:16px; font-family:var(--font-mono); font-size:12.5px; color:var(--ink-3)}
+.prog .track{flex:1; height:4px; background:var(--surface-2); border:1px solid var(--line); border-radius:100px; overflow:hidden}
+.prog .track i{display:block; height:100%; background:var(--ok); width:0; transition:width .3s}
+
+/* ============ SOURCES ============ */
+.src{padding:52px 0 76px}
+.src ol{margin:0; padding-left:20px; columns:2; column-gap:36px; font-size:13.5px; line-height:1.7; color:var(--ink-2)}
+@media (max-width:720px){ .src ol{columns:1} }
+.src li{margin-bottom:7px; break-inside:avoid}
+.foot{margin-top:36px; padding-top:20px; border-top:1px solid var(--line); font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition-duration:.01ms !important; animation-duration:.01ms !important}
+}
+</style>
+
+<nav class="nav">
+  <div class="nav-in">
+    <span class="nav-mark">DC-IN</span>
+    <a href="#s1">是什麼</a>
+    <a href="#s2">接頭解剖</a>
+    <a href="#s3">規格配對</a>
+    <a href="#s4">熱失控</a>
+    <a href="#s5">失效鏈</a>
+    <a href="#s6">症狀診斷</a>
+    <a href="#s7">客訴檔案</a>
+    <a href="#s8">檢核清單</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">電源介面 · 失效分析簡報</p>
+    <h1>DC-IN<br><span class="dim">Plug</span></h1>
+    <p class="lede">桌機的直流電源入口。一顆零件同時承受插拔應力、大電流與焊點疲勞——而它的客訴，往往在出貨十年後才引爆。</p>
+
+    <div class="stats">
+      <div class="stat c"><b>15.5M</b><span>2024 年 Dynabook 召回的變壓器數量，史上最大規模</span></div>
+      <div class="stat c"><b>679</b><span>過熱、起火、熔毀通報件數</span></div>
+      <div class="stat c"><b>43</b><span>燒燙傷案例</span></div>
+      <div class="stat a"><b>12年</b><span>從生產（2008）到召回（2024）的潛伏期</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ═══════════ 1 ═══════════ -->
+<section id="s1">
+  <p class="sec-label">§ 01 / 基礎</p>
+  <h2>它是什麼？</h2>
+  <p class="sec-sub">牆上插座出來的是交流電（AC），電腦晶片只吃直流電（DC）。中間必須有人做轉換——差別只在「轉換器放在機殼裡，還是放在外面」。</p>
+
+  <div class="flow">
+    <div class="flow-node"><span class="k">AC 110/220V</span><span class="t">牆上插座</span><span class="d">交流電，電壓高、會變向</span></div>
+    <div class="flow-node"><span class="k">AC → DC</span><span class="t">電源磚</span><span class="d">外置變壓器，把 AC 轉成穩定的 19V DC</span></div>
+    <div class="flow-node hot"><span class="k">← 本簡報主題</span><span class="t">DC-IN Plug</span><span class="d">插進機器的那個圓孔，全機唯一的電力入口</span></div>
+    <div class="flow-node"><span class="k">DC 19V</span><span class="t">主機板</span><span class="d">再降壓成 12V / 5V / 1.1V 給各元件</span></div>
+  </div>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th style="width:26%">機種</th><th style="width:22%">電源轉換位置</th><th>有 DC-IN 嗎</th></tr></thead>
+      <tbody>
+        <tr><td>傳統直立桌機（Tower）</td><td>機殼內建 PSU</td><td><b style="color:var(--ink-3)">沒有</b> — AC 電源線直接進機殼</td></tr>
+        <tr><td>All-in-One（AIO）</td><td>外置電源磚</td><td><b style="color:var(--accent)">有</b> — 機殼太薄放不下 PSU</td></tr>
+        <tr><td>Mini PC / NUC / 電競小主機</td><td>外置電源磚</td><td><b style="color:var(--accent)">有</b> — 體積優先，把發熱源移到機外</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════ 2 ═══════════ -->
+<section id="s2">
+  <p class="sec-label">§ 02 / 結構</p>
+  <h2>接頭解剖</h2>
+  <p class="sec-sub">點選圖上的編號，或右側清單，看每一段在做什麼、以及它怎麼壞。標紅的是失效熱點。</p>
+
+  <div class="anat">
+    <div class="anat-svg">
+      <svg id="anatomy" viewBox="0 0 760 300" role="img" aria-label="DC-IN 桶狀接頭剖面圖">
+        <!-- PCB -->
+        <g class="part" data-p="6">
+          <rect x="250" y="228" width="470" height="26" fill="var(--pcb)"/>
+          <rect x="250" y="228" width="470" height="3" fill="var(--metal)" opacity=".35"/>
+        </g>
+        <!-- Jack housing -->
+        <rect class="part" data-p="4" x="330" y="112" width="270" height="118" rx="3" fill="var(--ink-3)" opacity=".28"/>
+        <rect class="part" data-p="4" x="330" y="112" width="270" height="118" rx="3" fill="none" stroke="var(--ink-2)" stroke-width="1.2"/>
+        <!-- Cable -->
+        <g class="part" data-p="1">
+          <rect x="10" y="158" width="60" height="20" rx="4" fill="var(--ink-2)"/>
+          <rect x="14" y="164" width="52" height="3" fill="var(--metal)" opacity=".6"/>
+        </g>
+        <!-- Strain relief / grip -->
+        <path class="part" data-p="1" d="M70 148 L120 138 L200 138 L200 198 L120 198 L70 188 Z" fill="var(--ink-2)" opacity=".85"/>
+        <!-- Outer barrel (sleeve) -->
+        <g class="part" data-p="3">
+          <rect x="200" y="144" width="160" height="14" fill="var(--metal)"/>
+          <rect x="200" y="178" width="160" height="14" fill="var(--metal)"/>
+          <rect x="200" y="144" width="160" height="4" fill="var(--metal-2)"/>
+          <rect x="200" y="188" width="160" height="4" fill="var(--metal-2)"/>
+        </g>
+        <!-- Insulator -->
+        <g class="part" data-p="2">
+          <rect x="205" y="158" width="150" height="6" fill="var(--ink)" opacity=".5"/>
+          <rect x="205" y="172" width="150" height="6" fill="var(--ink)" opacity=".5"/>
+        </g>
+        <!-- Center pin -->
+        <g class="part" data-p="2">
+          <rect x="205" y="164" width="215" height="8" fill="var(--accent)"/>
+          <path d="M420 164 L432 168 L420 172 Z" fill="var(--accent)"/>
+        </g>
+        <!-- Spring contacts -->
+        <g class="part" data-p="4">
+          <path d="M355 140 q28 6 44 12 q-16 6 -44 12" fill="none" stroke="var(--patina)" stroke-width="3.4" stroke-linecap="round"/>
+          <path d="M355 196 q28 -6 44 -12 q-16 -6 -44 -12" fill="none" stroke="var(--patina)" stroke-width="3.4" stroke-linecap="round"/>
+          <path d="M425 158 q22 5 34 10 q-12 5 -34 10" fill="none" stroke="var(--patina)" stroke-width="3.4" stroke-linecap="round"/>
+        </g>
+        <!-- Legs down to PCB -->
+        <g class="part" data-p="5">
+          <rect x="395" y="230" width="16" height="24" fill="var(--metal)"/>
+          <rect x="520" y="230" width="16" height="24" fill="var(--metal)"/>
+          <path d="M385 254 q18 -14 36 0 z" fill="var(--metal-2)"/>
+          <path d="M510 254 q18 -14 36 0 z" fill="var(--metal-2)"/>
+          <rect x="382" y="252" width="42" height="6" rx="3" fill="var(--metal-2)"/>
+          <rect x="507" y="252" width="42" height="6" rx="3" fill="var(--metal-2)"/>
+        </g>
+        <!-- Force arrows -->
+        <g class="part" data-p="5" opacity=".85">
+          <path d="M150 92 L150 128" stroke="var(--crit)" stroke-width="2"/>
+          <path d="M144 122 L150 132 L156 122 Z" fill="var(--crit)"/>
+          <path d="M110 110 L190 110" stroke="var(--crit)" stroke-width="2" stroke-dasharray="4 3"/>
+          <text x="196" y="114" fill="var(--crit)" font-family="var(--font-mono)" font-size="11">插拔力矩</text>
+        </g>
+
+        <!-- Callouts -->
+        <g class="cal" data-p="1" tabindex="0"><line x1="100" y1="200" x2="100" y2="248"/><circle cx="100" cy="262" r="13"/><text x="100" y="266" text-anchor="middle">1</text></g>
+        <g class="cal" data-p="2" tabindex="0"><line x1="262" y1="168" x2="262" y2="248"/><circle cx="262" cy="262" r="13"/><text x="262" y="266" text-anchor="middle">2</text></g>
+        <g class="cal" data-p="3" tabindex="0"><line x1="300" y1="146" x2="300" y2="70"/><circle cx="300" cy="56" r="13"/><text x="300" y="60" text-anchor="middle">3</text></g>
+        <g class="cal" data-p="4" tabindex="0"><line x1="440" y1="150" x2="440" y2="70"/><circle cx="440" cy="56" r="13"/><text x="440" y="60" text-anchor="middle">4</text></g>
+        <g class="cal" data-p="5" tabindex="0"><line x1="600" y1="252" x2="660" y2="252"/><circle cx="676" cy="252" r="13"/><text x="676" y="256" text-anchor="middle">5</text></g>
+        <g class="cal" data-p="6" tabindex="0"><line x1="660" y1="228" x2="660" y2="150"/><circle cx="660" cy="136" r="13"/><text x="660" y="140" text-anchor="middle">6</text></g>
+      </svg>
+    </div>
+
+    <div class="parts" id="partlist"></div>
+  </div>
+</section>
+
+<!-- ═══════════ 3 ═══════════ -->
+<section id="s3">
+  <p class="sec-label">§ 03 / 規格</p>
+  <h2>只要看三件事</h2>
+  <p class="sec-sub">電壓、瓦數、孔徑與極性。任何一項不對，輕則開不了機，重則直接燒板——選一個情境試試看。</p>
+
+  <div class="tblwrap" style="margin-bottom:28px">
+    <table>
+      <thead><tr><th style="width:16%">項目</th><th style="width:38%">說明</th><th>不對會怎樣</th></tr></thead>
+      <tbody>
+        <tr><td><b>電壓 V</b></td><td>桌機常見 <code>19V</code> / <code>19.5V</code> / <code>20V</code>；小型機 <code>12V</code></td><td>太高 → 燒毀輸入級；太低 → 開不了機或強制降頻</td></tr>
+        <tr><td><b>電流 A / 瓦數 W</b></td><td>例如 <code>19V × 6.32A = 120W</code></td><td>不足 → 高負載當機、變壓器過熱、電池充不飽</td></tr>
+        <tr><td><b>孔徑</b></td><td><code>5.5×2.5mm</code>、<code>5.5×2.1mm</code>、<code>4.5×3.0mm</code></td><td>差 0.4mm → 接觸面積不足 → 發熱（見 §04）</td></tr>
+        <tr><td><b>極性</b></td><td>業界慣例：<b style="color:var(--accent)">中心針為 +</b>，外殼為 −</td><td>反接 → <b style="color:var(--crit)">瞬間燒毀</b>，無保護電路則主板報廢</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="chips" id="scenarios"></div>
+  <div class="card pad">
+    <div class="verdict">
+      <div class="vbadge v-ok" id="vbadge">安全</div>
+      <div class="vbody">
+        <h3 id="vtitle"></h3>
+        <p id="vtext"></p>
+        <span class="vspec" id="vspec"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 4 ═══════════ -->
+<section id="s4">
+  <p class="sec-label">§ 04 / 物理</p>
+  <h2>熱失控實驗室</h2>
+  <p class="sec-sub">接觸不良不會「就這樣」——它會走上一條不歸路。公式只有一條：<b>P = I²R</b>。拉動滑桿看接觸電阻如何把一顆好好的接頭變成火源。</p>
+
+  <div class="lab">
+    <div class="lab-ctl">
+      <div class="sld">
+        <label>負載電流 I <span class="val" id="iVal">6.3 A</span></label>
+        <input type="range" id="iSld" min="5" max="80" value="63" aria-label="負載電流">
+        <p class="hint">120W / 19V 的桌機滿載約 6.3A</p>
+      </div>
+      <div class="sld">
+        <label>接觸電阻 R <span class="val" id="rVal">20 mΩ</span></label>
+        <input type="range" id="rSld" min="5" max="300" value="20" aria-label="接觸電阻">
+        <p class="hint">全新良品 10–20 mΩ；插拔數千次後鬆動、氧化可升至 100 mΩ 以上</p>
+      </div>
+      <button class="btn" id="simBtn">▶ 模擬惡性循環（300 秒）</button>
+      <button class="btn ghost" id="resetBtn">重設</button>
+    </div>
+
+    <div class="lab-out">
+      <div class="readout">
+        <div class="ro"><span class="k">功率損耗 P</span><div class="v"><span id="pOut">0.79</span><span class="u">W</span></div></div>
+        <div class="ro"><span class="k">接點溫度 T</span><div class="v"><span id="tOut">50</span><span class="u">°C</span></div></div>
+        <div class="ro"><span class="k">目前電阻 R</span><div class="v"><span id="rOut">20</span><span class="u">mΩ</span></div></div>
+      </div>
+
+      <div class="thermo"><i id="thermoFill"></i></div>
+      <div class="scale"><span>30°C 室溫</span><span>85°C 氧化加速</span><span>180°C 碳化</span></div>
+
+      <div class="status" id="labStatus"></div>
+      <canvas id="chart" width="900" height="300" aria-label="溫度與電阻隨時間變化圖"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 5 ═══════════ -->
+<section id="s5">
+  <p class="sec-label">§ 05 / 機制</p>
+  <h2>失效鏈：一條真正的因果序列</h2>
+  <p class="sec-sub">DC-IN 的燒毀幾乎不是單一事件，而是這五步的連鎖——而且第 3 步之後會回頭放大第 2 步。</p>
+
+  <div class="chain">
+    <div class="link"><span class="st">STEP 1</span><div class="h">機構應力</div><p class="b">使用者反覆插拔，力矩全部傳到焊在主板上的接腳。</p></div>
+    <div class="link"><span class="st">STEP 2</span><div class="h">接觸面縮小</div><p class="b">彈片變形、焊點金屬疲勞產生微裂，實際導通面積剩下一小塊。</p></div>
+    <div class="link"><span class="st">STEP 3</span><div class="h">電阻上升</div><p class="b">接觸電阻從 15 mΩ 爬到 100 mΩ 以上，功率損耗成正比暴增。</p></div>
+    <div class="link"><span class="st">STEP 4</span><div class="h">局部高溫氧化</div><p class="b">P = I²R 全部變成熱。高溫讓金屬表面氧化，氧化層本身又是絕緣的。</p></div>
+    <div class="link"><span class="st">STEP 5</span><div class="h">碳化與燒毀</div><p class="b">塑膠外殼焦化導電、發出焦味、產生火花，最終熔穿並延燒到主板。</p></div>
+  </div>
+  <div class="loopnote">STEP 4 的氧化會回頭讓 STEP 3 的電阻繼續上升 —— 這就是「熱失控」正回饋</div>
+</section>
+
+<!-- ═══════════ 6 ═══════════ -->
+<section id="s6">
+  <p class="sec-label">§ 06 / 診斷</p>
+  <h2>症狀 → 根因</h2>
+  <p class="sec-sub">勾選使用者回報的現象，右側即時給出可能的根因排序。這不是取代量測，是幫你決定先拆哪裡。</p>
+
+  <div class="diag">
+    <div class="symp" id="symptoms"></div>
+    <div class="causes" id="causes"><p class="empty">← 勾選左側症狀後，這裡會列出可能根因</p></div>
+  </div>
+</section>
+
+<!-- ═══════════ 7 ═══════════ -->
+<section id="s7">
+  <p class="sec-label">§ 07 / 案例</p>
+  <h2>客訴檔案</h2>
+  <p class="sec-sub">全都是真實案例。點開每一則看細節與教訓。<span style="color:var(--crit)">紅色＝正式召回</span>、<span style="color:var(--patina)">青色＝設計性缺陷</span>、<span style="color:var(--warn)">黃色＝長期慢性抱怨</span>。</p>
+
+  <div class="tl" id="timeline"></div>
+
+  <div class="barchart">
+    <h3 style="margin-bottom:4px">召回規模比較</h3>
+    <p style="font-size:13.5px; color:var(--ink-3); margin-bottom:20px">同樣是「變壓器過熱起火」，2024 年這一次比過去三次加起來多了 11 倍。</p>
+    <div id="bars"></div>
+  </div>
+</section>
+
+<!-- ═══════════ 8 ═══════════ -->
+<section id="s8">
+  <p class="sec-label">§ 08 / 對策</p>
+  <h2>設計與品保檢核清單</h2>
+  <p class="sec-sub">從上面所有案例反推出來的五件事。勾掉你已經確認過的。</p>
+
+  <div class="ck" id="checklist"></div>
+  <div class="prog"><span id="progTxt">0 / 5</span><span class="track"><i id="progBar"></i></span></div>
+</section>
+
+<!-- ═══════════ SOURCES ═══════════ -->
+<section class="src" style="border-bottom:0">
+  <p class="sec-label">資料來源</p>
+  <h2 style="font-size:24px; margin-bottom:22px">Sources</h2>
+  <ol>
+    <li><a href="https://www.cpsc.gov/Recalls/2024/Dynabook-Americas-Recalls-15-5-Million-Toshiba-Laptop-AC-Adapters-Due-to-Burn-and-Fire-Hazards">CPSC — Dynabook Americas Recalls 15.5 Million Toshiba Laptop AC Adapters</a></li>
+    <li><a href="https://www.cnn.com/2024/02/21/tech/toshiba-laptop-adapters-recalled-fire-risks/index.html">CNN — 15 million Toshiba laptop adapters recalled over burn and fire risks</a></li>
+    <li><a href="https://www.cpsc.gov/Recalls/2001/cpsc-compaq-announce-recall-of-notebook-computer-ac-adapters">CPSC — Compaq Notebook Computer AC Adapter Recall (2001)</a></li>
+    <li><a href="https://www.cpsc.gov/Recalls/2004/cpsc-ibm-announce-recall-of-ac-adapters-for-notebook-computers">CPSC — IBM Recall of AC Adapters for Notebook Computers (2004)</a></li>
+    <li><a href="https://www.cpsc.gov/Recalls/2001/CPSC-Apple-Announces-Recall-of-AC-Adapter-for-Prior-Generation-PowerBook-Laptops">CPSC — Apple PowerBook G3 AC Adapter Recall (2001)</a></li>
+    <li><a href="https://hackaday.com/2014/03/03/hacking-dell-laptop-charger-identification/">Hackaday — Hacking Dell Laptop Charger Identification</a></li>
+    <li><a href="https://laptoprepairexperts.wordpress.com/2011/02/21/inside-the-dell-ac-power-adapter-a-mystery-revealed/">Inside the Dell AC Power Adapter — A mystery revealed</a></li>
+    <li><a href="https://www.techtonions.com/dc-jack-power-connectors/">TechTOnions — The DC Power Jack Connector</a></li>
+    <li><a href="https://learn.sparkfun.com/tutorials/connector-basics/power-connectors">SparkFun — Connector Basics: Power Connectors</a></li>
+    <li><a href="https://www.pcgeeksusa.com/symptoms-dc-power-jack-failing/">PC Geeks — Symptoms Your DC Power Jack Is Failing</a></li>
+    <li><a href="https://www.laptoprepair101.com/dc-power-jack-repair-guide/">Laptop Repair 101 — DC power jack repair guide</a></li>
+    <li><a href="https://www.ifixit.com/Answers/View/618915/DC-IN+socket+on+motherboard+burnt+as+well+as+cable+(photo)">iFixit — DC-IN socket on motherboard burnt</a></li>
+    <li><a href="https://www.techsupportforum.com/threads/hp-all-in-one-omni-220-pc-wont-turn-on.1169714/">Tech Support Forum — HP All-in-One (Omni 220) 電源問題</a></li>
+  </ol>
+  <div class="foot">
+    <span>熱模型為教學用簡化式：T = T_amb + P × Rθ，Rθ ≈ 25 °C/W，T_amb = 30 °C</span>
+    <span>2026-08-02</span>
+  </div>
+</section>
+
+</div>
+
+<script>
+/* ═══════════ 1. ANATOMY ═══════════ */
+const PARTS = [
+  {n:1, nm:"線材與應力消除", ds:"電源磚到接頭的那段線。內部是多股細銅線，靠近插頭處反覆彎折最容易斷芯。", rk:"失效熱點：斷芯造成電阻上升、間歇斷電"},
+  {n:2, nm:"中心針（+）與絕緣層", ds:"業界慣例：中心針帶正電壓，外殼接地。中間靠一層薄絕緣隔開。少數廠商還在中心針多塞一條 ID 訊號線。", rk:"失效熱點：ID 訊號線斷 → 主機拒認變壓器"},
+  {n:3, nm:"外筒（−／接地）", ds:"整個金屬外殼就是回流路徑，所有電流都要從這裡回去。它的接觸面積遠大於中心針，所以通常不是瓶頸。", rk:""},
+  {n:4, nm:"母座彈片接點", ds:"座子裡的金屬彈片，靠彈性壓住插頭維持接觸。插拔次數一多就會塑性變形、失去彈力。", rk:"失效熱點：彈力衰減 → 接觸電阻飆升"},
+  {n:5, nm:"焊點（最脆弱的一環）", ds:"母座焊在主機板上。使用者施加的所有插拔力矩，最後都由這幾顆焊點承受——它們是被設計來導電的，不是被設計來吃力的。", rk:"失效熱點：金屬疲勞微裂、冷焊、脫焊"},
+  {n:6, nm:"主機板（PCB）", ds:"一旦焊點裂開或接頭燒毀，損傷會延燒到板面的銅箔與電源電路，通常整片主板報廢。", rk:"這就是為什麼 DC-IN 的維修成本特別高"}
+];
+
+const partList = document.getElementById("partlist");
+const svg = document.getElementById("anatomy");
+
+PARTS.forEach(p=>{
+  const b = document.createElement("button");
+  b.className = "part-btn"; b.dataset.p = p.n; b.type = "button";
+  b.innerHTML = `<span class="num">${p.n}</span><span><span class="nm">${p.nm}</span>
+    <span class="ds">${p.ds}</span>${p.rk?`<span class="rk">⚠ ${p.rk}</span>`:""}</span>`;
+  partList.appendChild(b);
+});
+
+let activePart = null;
+function selectPart(n){
+  activePart = (activePart === n) ? null : n;
+  document.querySelectorAll(".part-btn").forEach(el=> el.classList.toggle("on", el.dataset.p == activePart));
+  svg.querySelectorAll(".cal").forEach(el=> el.classList.toggle("on", el.dataset.p == activePart));
+  svg.querySelectorAll(".part").forEach(el=> el.classList.toggle("lit", el.dataset.p == activePart));
+  svg.classList.toggle("dim-out", activePart !== null);
+}
+partList.addEventListener("click", e=>{ const b = e.target.closest(".part-btn"); if(b) selectPart(+b.dataset.p); });
+svg.addEventListener("click", e=>{ const g = e.target.closest(".cal"); if(g) selectPart(+g.dataset.p); });
+svg.addEventListener("keydown", e=>{
+  const g = e.target.closest(".cal");
+  if(g && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); selectPart(+g.dataset.p); }
+});
+
+/* ═══════════ 2. ADAPTER SCENARIOS ═══════════ */
+const SCEN = [
+  {k:"原廠 19V / 120W", lv:"ok",   t:"完全匹配", x:"電壓相符、瓦數足夠、極性正確、孔徑吻合。這是唯一該出現在客戶手上的組合。", s:"19V · 6.32A · 5.5×2.5mm · 中心正"},
+  {k:"19V / 65W（瓦數不足）", lv:"warn", t:"可以開機，但會出事", x:"低負載看似正常，一旦 CPU/GPU 全載就會超出變壓器輸出上限：系統當機、變壓器過熱保護跳脫，長期還會加速變壓器老化。這類客訴最難重現，因為只在特定負載下發生。", s:"19V · 3.42A · 缺 55W 餘裕"},
+  {k:"24V（過壓）", lv:"crit", t:"危險：燒毀輸入級", x:"超出主板輸入電容與 MOSFET 的耐壓。運氣好保險絲燒斷，運氣不好整條電源電路報廢。孔徑相同卻電壓不同的變壓器，是市面上最常見的誤插來源。", s:"24V vs 19V · 超出 26%"},
+  {k:"12V（欠壓）", lv:"warn", t:"開不了機或強制降頻", x:"不會燒東西，但系統偵測不到足夠電壓，通常直接拒絕開機，或進入低功耗模式。使用者會回報「電源燈亮但畫面沒反應」。", s:"12V vs 19V · 不足 37%"},
+  {k:"極性反接（中心負）", lv:"crit", t:"最嚴重：瞬間燒毀", x:"中心針帶負電、外殼帶正電。若主板沒有反接保護（TVS／理想二極體），電流會走完全錯誤的路徑，通常在插入的瞬間就冒煙。工業或音響類設備的變壓器常見中心負設計，孔徑卻與電腦通用。", s:"極性符號 ⊖—C—⊕ · 與規格相反"},
+  {k:"孔徑不符 5.5×2.1", lv:"crit", t:"插得進去，但會燒起來", x:"插頭內徑 2.1mm 插進 2.5mm 的中心針，會被撐開、失去彈性；反過來則接觸面積只剩一小圈。實際導通面積剩下不到三成，接觸電阻暴增 → 直接進入 §04 的熱失控。", s:"孔徑差 0.4mm · 接觸面積 −70%"}
+];
+
+const chipBox = document.getElementById("scenarios");
+SCEN.forEach((s,i)=>{
+  const c = document.createElement("button");
+  c.className = "chip"; c.type = "button"; c.textContent = s.k; c.dataset.i = i;
+  chipBox.appendChild(c);
+});
+const vb = document.getElementById("vbadge"), vt = document.getElementById("vtitle"),
+      vx = document.getElementById("vtext"), vs = document.getElementById("vspec");
+const LV = {ok:["安全","v-ok"], warn:["警告","v-warn"], crit:["危險","v-crit"]};
+function showScen(i){
+  const s = SCEN[i];
+  document.querySelectorAll(".chip").forEach(c=> c.classList.toggle("on", c.dataset.i == i));
+  vb.textContent = LV[s.lv][0];
+  vb.className = "vbadge " + LV[s.lv][1];
+  vt.textContent = s.t; vx.textContent = s.x; vs.textContent = s.s;
+}
+chipBox.addEventListener("click", e=>{ const c = e.target.closest(".chip"); if(c) showScen(+c.dataset.i); });
+showScen(0);
+
+/* ═══════════ 3. THERMAL LAB ═══════════ */
+const RTH = 25, TAMB = 30, T_OX = 85, T_FAIL = 180;
+const iSld = document.getElementById("iSld"), rSld = document.getElementById("rSld");
+const iVal = document.getElementById("iVal"), rVal = document.getElementById("rVal");
+const pOut = document.getElementById("pOut"), tOut = document.getElementById("tOut"), rOut = document.getElementById("rOut");
+const thermoFill = document.getElementById("thermoFill"), labStatus = document.getElementById("labStatus");
+const simBtn = document.getElementById("simBtn"), resetBtn = document.getElementById("resetBtn");
+const cv = document.getElementById("chart"), ctx = cv.getContext("2d");
+
+let simR = null, simTimer = null, hist = [];
+
+function thermalColor(t){
+  // 熱像儀色階：青 → 黃 → 橙 → 紅 → 白
+  const stops = [[30,"#2C6B79"],[70,"#C9A227"],[100,"#D98545"],[140,"#C0392B"],[190,"#F2E7DC"]];
+  if(t <= stops[0][0]) return stops[0][1];
+  for(let i=0;i<stops.length-1;i++){
+    if(t <= stops[i+1][0]){
+      const f = (t - stops[i][0]) / (stops[i+1][0] - stops[i][0]);
+      return mix(stops[i][1], stops[i+1][1], f);
+    }
+  }
+  return stops[stops.length-1][1];
+}
+function mix(a,b,f){
+  const pa = [1,3,5].map(i=>parseInt(a.substr(i,2),16));
+  const pb = [1,3,5].map(i=>parseInt(b.substr(i,2),16));
+  return "#" + pa.map((v,i)=> Math.round(v + (pb[i]-v)*f).toString(16).padStart(2,"0")).join("");
+}
+
+function compute(){
+  const I = +iSld.value / 10;
+  const R = simR !== null ? simR : +rSld.value;
+  const P = I*I * (R/1000);
+  const T = TAMB + P * RTH;
+  return {I,R,P,T};
+}
+
+function render(){
+  const {I,R,P,T} = compute();
+  iVal.textContent = I.toFixed(1) + " A";
+  rVal.textContent = (+rSld.value) + " mΩ";
+  pOut.textContent = P.toFixed(2);
+  tOut.textContent = Math.round(T);
+  rOut.textContent = Math.round(R);
+
+  const pct = Math.min(100, (T - TAMB) / (T_FAIL + 40 - TAMB) * 100);
+  thermoFill.style.width = pct + "%";
+  thermoFill.style.background = thermalColor(T);
+
+  let msg;
+  if(T >= T_FAIL) msg = `<b style="color:var(--crit)">已燒毀。</b> 接點溫度突破 ${T_FAIL}°C，塑膠碳化並開始導電，此時電阻與溫度互相推升，斷電是唯一的停止方式。這就是那 679 件通報的物理過程。`;
+  else if(T >= 130) msg = `<b style="color:var(--crit)">危險。</b> 已進入不可逆區間：塑膠軟化、接觸面持續變形，使用者這時通常會聞到焦味或看到插頭處變色。`;
+  else if(T >= T_OX) msg = `<b style="color:var(--warn)">警戒。</b> 超過 ${T_OX}°C，金屬表面氧化開始加速。氧化層本身不導電 → 電阻會繼續往上爬 → 溫度再升高。<b>正回饋已經啟動。</b>`;
+  else if(T >= 60) msg = `<b style="color:var(--warn)">偏高。</b> 使用者摸得到明顯溫熱。此時還可逆，但已經沒有餘裕承受插拔磨耗或環境高溫。`;
+  else msg = `<b style="color:var(--ok)">正常。</b> 損耗在可接受範圍，接點溫度接近機殼內環境溫度。良品應該長期維持在這裡。`;
+  labStatus.innerHTML = msg;
+
+  drawChart();
+}
+
+function drawChart(){
+  const W = cv.width, H = cv.height, pad = 30;
+  const cs = getComputedStyle(document.documentElement);
+  ctx.clearRect(0,0,W,H);
+
+  // grid
+  ctx.strokeStyle = cs.getPropertyValue("--line").trim();
+  ctx.lineWidth = 1;
+  [0,.25,.5,.75,1].forEach(f=>{
+    const y = pad + (H - pad*2) * f;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W-pad, y); ctx.stroke();
+  });
+
+  ctx.fillStyle = cs.getPropertyValue("--ink-3").trim();
+  ctx.font = "16px " + cs.getPropertyValue("--font-mono");
+  ctx.fillText("溫度 (°C)", pad, 20);
+  ctx.fillText("220", W-pad-34, pad+16);
+  ctx.fillText("0", W-pad-14, H-pad-6);
+
+  // fail line
+  ctx.strokeStyle = cs.getPropertyValue("--crit").trim();
+  ctx.setLineDash([6,5]); ctx.beginPath();
+  const yf = pad + (H-pad*2) * (1 - T_FAIL/220);
+  ctx.moveTo(pad, yf); ctx.lineTo(W-pad, yf); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cs.getPropertyValue("--crit").trim();
+  ctx.fillText("180°C 碳化", pad+6, yf-8);
+
+  if(hist.length < 2){
+    ctx.fillStyle = cs.getPropertyValue("--ink-3").trim();
+    ctx.fillText("按下「模擬惡性循環」看溫度隨時間的走勢", pad+8, H/2);
+    return;
+  }
+
+  const N = 300;
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = cs.getPropertyValue("--accent").trim();
+  ctx.beginPath();
+  hist.forEach((h,i)=>{
+    const x = pad + (W-pad*2) * (i/N);
+    const y = pad + (H-pad*2) * (1 - Math.min(h.T,220)/220);
+    i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+  });
+  ctx.stroke();
+}
+
+function reset(){
+  clearInterval(simTimer); simTimer = null; simR = null; hist = [];
+  simBtn.disabled = false; simBtn.textContent = "▶ 模擬惡性循環（300 秒）";
+  render();
+}
+function runSim(){
+  clearInterval(simTimer);
+  simR = +rSld.value; hist = [];
+  simBtn.disabled = true;
+  let t = 0;
+  simTimer = setInterval(()=>{
+    const {T} = compute();
+    hist.push({t, T});
+    if(T > T_OX && T < T_FAIL) simR *= 1 + 0.0022 * (T - T_OX);   // 氧化 → 電阻爬升
+    t++;
+    simBtn.textContent = `模擬中… ${t}s`;
+    render();
+    if(t >= 300 || T >= T_FAIL){
+      clearInterval(simTimer); simTimer = null; simBtn.disabled = false;
+      simBtn.textContent = T >= T_FAIL ? "已燒毀 — 按重設再試" : "▶ 重新模擬";
+    }
+  }, 40);
+}
+iSld.addEventListener("input", ()=>{ if(!simTimer){ simR = null; } render(); });
+rSld.addEventListener("input", ()=>{ if(!simTimer){ simR = null; } render(); });
+simBtn.addEventListener("click", runSim);
+resetBtn.addEventListener("click", reset);
+render();
+
+/* ═══════════ 4. DIAGNOSER ═══════════ */
+const CAUSES = {
+  solder:  {nm:"母座焊點裂開／冷焊", fx:"需重焊或更換母座；主板已有裂紋則整片更換"},
+  contact: {nm:"彈片磨耗、接觸鬆動", fx:"更換 DC Jack；同時檢查插頭端是否也磨損"},
+  cable:   {nm:"線材斷芯／ID 訊號線斷", fx:"更換整條變壓器，不要只換插頭"},
+  psu:     {nm:"變壓器本體故障或瓦數不足", fx:"用電表量空載與帶載電壓；確認銘牌瓦數"},
+  board:   {nm:"主板電源電路受損", fx:"檢查輸入保險絲、MOSFET、電容有無鼓包或碳化"}
+};
+const SYMPTOMS = [
+  {t:"要「喬角度」或壓著線才通電",        w:{solder:5, contact:5, cable:2}},
+  {t:"插頭或接孔處明顯發燙",              w:{contact:5, psu:3, board:1}},
+  {t:"插頭有焦味、變色或黑點",            w:{contact:5, board:4}},
+  {t:"插拔瞬間看到火花",                  w:{contact:4, solder:3, board:3}},
+  {t:"電源燈閃爍、電源反覆跳掉",          w:{solder:4, contact:3, psu:3}},
+  {t:"完全不通電、電源燈不亮",            w:{psu:4, solder:3, board:4}},
+  {t:"系統跳出「無法辨識變壓器」警告",    w:{cable:6, psu:3}},
+  {t:"CPU 被強制降頻／效能異常低",        w:{cable:5, psu:4}},
+  {t:"只有高負載時才當機",                w:{psu:6, contact:2}},
+  {t:"接孔內部鬆動、插頭可以晃動",        w:{contact:6, solder:4}}
+];
+
+const sympBox = document.getElementById("symptoms"), causeBox = document.getElementById("causes");
+SYMPTOMS.forEach((s,i)=>{
+  const l = document.createElement("label");
+  l.innerHTML = `<input type="checkbox" data-i="${i}"><span>${s.t}</span>`;
+  sympBox.appendChild(l);
+});
+sympBox.addEventListener("change", ()=>{
+  const picked = [...sympBox.querySelectorAll("input:checked")].map(el=> SYMPTOMS[+el.dataset.i]);
+  if(!picked.length){
+    causeBox.innerHTML = `<p class="empty">← 勾選左側症狀後，這裡會列出可能根因</p>`;
+    return;
+  }
+  const score = {};
+  picked.forEach(s=> Object.entries(s.w).forEach(([k,v])=> score[k] = (score[k]||0) + v));
+  const total = Object.values(score).reduce((a,b)=>a+b,0);
+  const ranked = Object.entries(score).sort((a,b)=> b[1]-a[1]);
+  causeBox.innerHTML = ranked.map(([k,v])=>{
+    const pct = Math.round(v/total*100);
+    return `<div class="cause">
+      <div class="top"><span class="nm">${CAUSES[k].nm}</span><span class="pc">${pct}%</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="fx">處置：${CAUSES[k].fx}</div>
+    </div>`;
+  }).join("");
+});
+
+/* ═══════════ 5. TIMELINE ═══════════ */
+const EVENTS = [
+  {yr:"1996", tag:"recall", t:"Compaq Armada 4100 變壓器召回", b:`
+    <p>業界最早一批 AC 變壓器安全召回之一，開啟了往後三十年同一個病灶的循環：<b>變壓器過熱</b>。</p>
+    <div class="lesson"><b>教訓 ·</b> 這個失效模式從第一天就存在，而且從來沒有被真正根除。</div>`},
+  {yr:"2001", tag:"recall", t:"Compaq 59.4 萬顆 · Apple PowerBook G3 57 萬顆", b:`
+    <ul>
+      <li><b>Compaq：</b>約 594,000 顆變壓器召回，公司收到 <b>5 起起火通報</b>（火勢侷限在變壓器外殼內）。</li>
+      <li><b>Apple：</b>約 570,000 顆 PowerBook G3 變壓器召回，同樣是過熱起火風險。</li>
+    </ul>
+    <div class="lesson"><b>教訓 ·</b> 同一年、兩家頂級品牌、同一個原因。這不是單一供應商的問題，是整個產業對「外置電源」的熱設計餘裕估得太樂觀。</div>`},
+  {yr:"2004", tag:"recall", t:"IBM 22.5 萬顆變壓器召回", b:`
+    <p>約 225,000 顆變壓器召回。CPSC 描述的失效路徑非常具體：<b>過熱 → 損壞內部電路板 → 熔穿外殼</b>，構成火災與觸電雙重風險。</p>
+    <div class="lesson"><b>教訓 ·</b> 「熔穿外殼」意味著外殼材料的耐溫等級（UL 94 阻燃等級）沒有守住最後一道防線。外殼不是造型件，是安全件。</div>`},
+  {yr:"2008–2012", tag:"chronic", t:"Toshiba 問題批次的生產期", b:`
+    <p>後來被召回的 1,550 萬顆變壓器，date code 落在 <b>2008 年 4 月至 2012 年 12 月</b>之間，橫跨超過 60 個機種。</p>
+    <p>也就是說：問題零件在市場上正常銷售了將近五年，之後又在使用者手上待了十年才被召回。</p>
+    <div class="lesson"><b>教訓 ·</b> 電源零件的失效是<b>累積型</b>的，不是批次型的。出貨當下的測試全過，不代表三年後還會過。加速壽命試驗（HALT/HAST）在這裡不是選配。</div>`},
+  {yr:"2009–", tag:"design", t:"Dell「AC adapter type cannot be determined」", b:`
+    <p>Dell 在變壓器的<b>中心針</b>裡放了一顆 Dallas DS2501 單線識別晶片，主板端也有一顆，用來確認「這是不是原廠變壓器、幾瓦」。</p>
+    <ul>
+      <li>中心針那條細訊號線斷裂，或晶片本身失效 → 主機拒絕辨識</li>
+      <li>後果：跳出警告、<b>CPU 強制降頻</b>、電池不充電——機器還能開，但效能砍半</li>
+      <li>影響 Inspiron 1525 / 6000 / 600m、XPS M1330、Latitude D600 等大量機種</li>
+      <li>光是這一句錯誤訊息，Google 上就有<b>超過 6 萬筆</b>討論</li>
+    </ul>
+    <div class="lesson"><b>教訓 ·</b> 為了防偽而多加一個接點，就是多一個失效點。<b>多一根針＝多一個客訴來源</b>，而且這種客訴特別難處理——因為機器「沒壞」，只是變慢，使用者會覺得被欺騙。</div>`},
+  {yr:"長期", tag:"chronic", t:"HP / Dell AIO 的 DC Jack 慢性客訴", b:`
+    <p>HP All-in-One（Omni、Envy 系列）與 Dell Inspiron One 的 DC Jack，被維修圈長期點名為 <b>“a VERY common issue”</b>。</p>
+    <p>弔詭的是：AIO 就放在桌上，不像筆電會被塞進背包、被摔。它照樣壞。根因不是使用者暴力，而是：</p>
+    <ul>
+      <li>內部 DC-IN 轉接線的<b>壓接（crimp）品質</b>不穩</li>
+      <li>母座焊點承受不了長期插拔力矩</li>
+    </ul>
+    <div class="lesson"><b>教訓 ·</b> 不要用「使用情境比筆電溫和」來放寬 AIO 的機構驗證標準。壽命是插拔次數決定的，不是機種類別決定的。</div>`},
+  {yr:"2024", tag:"recall", t:"Dynabook 召回 1,550 萬顆 — 史上最大規模", b:`
+    <p>2024 年 2 月 21 日，Dynabook Americas（原 Toshiba）宣布召回 <b>15,500,000 顆</b> Toshiba 品牌筆電變壓器。</p>
+    <ul>
+      <li><b>679 件</b>過熱、起火、熔毀、燃燒通報</li>
+      <li><b>43 件</b>輕微燒燙傷</li>
+      <li>涵蓋 60 個以上機種，date code 2008/04 – 2012/12</li>
+      <li>處置：立即停用，免費更換</li>
+    </ul>
+    <div class="lesson"><b>教訓 ·</b> 679 件通報累積到觸發召回，用了十幾年。在那之前，每一件個案在客服系統裡看起來都只是「一台機器的偶發故障」。<b>單點客訴看不出系統性缺陷——要靠長期趨勢統計才看得到。</b></div>`}
+];
+const TAGN = {recall:["正式召回","t-recall"], design:["設計性缺陷","t-design"], chronic:["長期慢性","t-chronic"]};
+const tl = document.getElementById("timeline");
+EVENTS.forEach((e,i)=>{
+  const d = document.createElement("div");
+  d.className = "ev";
+  d.innerHTML = `<button class="ev-h" type="button" aria-expanded="false">
+      <span class="yr">${e.yr}</span>
+      <span class="ev-t">${e.t}</span>
+      <span class="tag ${TAGN[e.tag][1]}">${TAGN[e.tag][0]}</span>
+    </button><div class="ev-b">${e.b}</div>`;
+  tl.appendChild(d);
+});
+tl.addEventListener("click", ev=>{
+  const h = ev.target.closest(".ev-h"); if(!h) return;
+  const p = h.parentElement, open = p.classList.toggle("open");
+  h.setAttribute("aria-expanded", open);
+});
+
+/* ═══════════ 6. BAR CHART ═══════════ */
+const RECALLS = [
+  {l:"IBM（2004）", v:225000},
+  {l:"Apple PowerBook G3（2001）", v:570000},
+  {l:"Compaq（2001）", v:594000},
+  {l:"Toshiba / Dynabook（2024）", v:15500000}
+];
+const maxV = Math.max(...RECALLS.map(r=>r.v));
+document.getElementById("bars").innerHTML = RECALLS.map(r=>`
+  <div class="bc-row">
+    <span class="bc-lbl">${r.l}</span>
+    <span class="bc-track"><i class="bc-fill ${r.v===maxV?"big":""}" data-w="${(r.v/maxV*100).toFixed(2)}"></i></span>
+    <span class="bc-num">${r.v.toLocaleString()}</span>
+  </div>`).join("");
+const barObs = new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){
+    document.querySelectorAll(".bc-fill").forEach(f=> f.style.width = f.dataset.w + "%");
+    barObs.disconnect();
+  }});
+},{threshold:.3});
+barObs.observe(document.getElementById("bars"));
+
+/* ═══════════ 7. CHECKLIST ═══════════ */
+const CHECKS = [
+  {h:"加固焊接，不要只靠 SMT 焊點吃力", b:"改用穿孔（through-hole）＋機構補強片。焊點的職責是導電，承受插拔力矩應該由結構件負責。"},
+  {h:"機構應力隔離", b:"DC Jack 要靠機殼 bracket 固定並吃掉外力，不要讓力直接傳到 PCB。這一條就能消掉 §07 裡大半的 AIO 慢性客訴。"},
+  {h:"插拔壽命驗證要量電阻與溫升", b:"至少 5,000–10,000 次循環。做完不能只確認「還會通電」，必須量測接觸電阻變化與滿載溫升——§04 已經示範了 15 mΩ 與 100 mΩ 的差別。"},
+  {h:"反接與過壓保護", b:"主板端配置 TVS、OVP 與理想二極體。市面上孔徑相同但電壓／極性不同的變壓器太多，防呆不能只靠使用者。"},
+  {h:"避免使用市面通用孔徑", b:"若採用 5.5×2.5mm 這種爛大街的規格，使用者拿雜牌 24V 亂插燒了機器，責任仍在你身上。專屬孔徑或加入機構防呆是最便宜的保險。"}
+];
+const ckBox = document.getElementById("checklist");
+CHECKS.forEach(c=>{
+  const l = document.createElement("label");
+  l.innerHTML = `<input type="checkbox"><span><span class="h">${c.h}</span><span class="b">${c.b}</span></span>`;
+  ckBox.appendChild(l);
+});
+const progTxt = document.getElementById("progTxt"), progBar = document.getElementById("progBar");
+ckBox.addEventListener("change", ()=>{
+  const n = ckBox.querySelectorAll("input:checked").length;
+  progTxt.textContent = `${n} / ${CHECKS.length}`;
+  progBar.style.width = (n/CHECKS.length*100) + "%";
+});
+
+/* ═══════════ 8. NAV SCROLLSPY ═══════════ */
+const links = [...document.querySelectorAll(".nav a")];
+const secs = links.map(a=> document.querySelector(a.getAttribute("href"))).filter(Boolean);
+const navObs = new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(a=> a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+    }
+  });
+},{rootMargin:"-20% 0px -70% 0px"});
+secs.forEach(s=> navObs.observe(s));
+
+/* 主題切換時重繪 canvas */
+new MutationObserver(()=> drawChart()).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=> drawChart());
+</script>
