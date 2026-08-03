@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>互動說明</title>
+<style>
+  :root{
+    --primary:#1F4E79; --primary2:#2E75B6; --light:#DEEAF6; --bg:#f5f7fa;
+    --card:#fff; --text:#222; --muted:#666;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Microsoft JhengHei","Segoe UI",sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:24px 16px;}
+  .wrap{max-width:880px;margin:0 auto;}
+  header{text-align:center;margin-bottom:28px;}
+  header h1{color:var(--primary);font-size:clamp(24px,5vw,34px);}
+  header p{color:var(--muted);margin-top:6px;}
+  h2{color:var(--primary);font-size:clamp(19px,4vw,24px);margin:34px 0 14px;}
+  h2 .hint{font-size:14px;color:var(--muted);font-weight:normal;}
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  .step{background:var(--card);border:2px solid var(--light);border-radius:14px;padding:18px;cursor:pointer;transition:.2s;text-align:center;}
+  .step:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.12);}
+  .step.active{border-color:var(--primary2);background:var(--light);}
+  .step .num{display:inline-block;width:34px;height:34px;line-height:34px;border-radius:50%;background:var(--primary);color:#fff;font-weight:bold;margin-bottom:8px;}
+  .step .name{font-weight:bold;color:var(--primary);font-size:17px;}
+  .step .en{font-size:13px;color:var(--muted);}
+  .detail{margin-top:14px;background:var(--card);border-left:5px solid var(--primary2);border-radius:8px;padding:16px 18px;min-height:60px;}
+  .detail b{color:var(--primary);}
+  .summary{margin-top:16px;background:var(--light);border-left:6px solid var(--primary);border-radius:8px;padding:14px 18px;font-weight:bold;color:var(--primary);font-size:17px;}
+  .sim{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start;}
+  @media(max-width:620px){.sim{grid-template-columns:1fr;}}
+  .screen-box{background:#c9ced6;padding:16px;border-radius:18px;box-shadow:inset 0 0 8px rgba(0,0,0,.2);}
+  .screen{position:relative;width:100%;aspect-ratio:4/3;background:#111;border-radius:6px;overflow:hidden;transition:background .3s;}
+  .screen.white{background:#fafafa;}
+  .dot{position:absolute;width:7px;height:7px;border-radius:50%;}
+  .dot.bright{background:#fff;box-shadow:0 0 6px 2px #fff;}
+  .dot.dark{background:#000;}
+  .leak{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;box-shadow:inset 0 0 40px 12px rgba(120,170,255,.9),inset 0 0 12px 4px rgba(150,190,255,.8);}
+  .leak.on{opacity:1;}
+  .mura{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;background:radial-gradient(circle at 30% 40%,rgba(255,255,255,.14),transparent 45%),radial-gradient(circle at 70% 65%,rgba(255,255,255,.10),transparent 40%),radial-gradient(circle at 55% 25%,rgba(0,0,0,.18),transparent 45%);}
+  .mura.on{opacity:1;}
+  .caption{text-align:center;margin-top:10px;color:var(--muted);font-size:14px;}
+  .controls{display:flex;flex-direction:column;gap:10px;}
+  .btn{background:var(--card);border:2px solid var(--light);border-radius:10px;padding:12px 14px;cursor:pointer;text-align:left;transition:.15s;font-size:15px;}
+  .btn:hover{border-color:var(--primary2);}
+  .btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .btn small{display:block;font-size:12.5px;opacity:.8;margin-top:2px;}
+  table{width:100%;border-collapse:collapse;background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);}
+  th{background:var(--primary);color:#fff;padding:12px;text-align:left;font-size:15px;}
+  td{padding:11px 12px;border-top:1px solid #eee;font-size:14.5px;vertical-align:top;}
+  .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;color:#fff;white-space:nowrap;}
+  .legend{margin-top:10px;font-size:13.5px;color:var(--muted);display:flex;gap:18px;flex-wrap:wrap;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block;}
+  ul.mem{margin:6px 0 0 22px;} ul.mem li{margin-bottom:6px;}
+  footer{text-align:center;color:var(--muted);font-size:13px;margin-top:36px;}
+  section{margin-bottom:4px;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<footer>點一點、看一看，快速理解 🎉</footer>
+
+<script id="content" type="application/json">{"title": "AI Agent 是什麼？連最新的「Agent 外殼 (Harness)」一次搞懂", "subtitle": "從「會聊天的 AI」到「會自己動手做事的 AI」", "theme": "purple", "steps": {"heading": "一個 AI Agent 是怎麼「自己做事」的？", "intro": "一般的 AI（像聊天機器人）只會「你問一句、它答一句」。而 AI Agent 更像一個「會自己想辦法把事情做完的小幫手」：你給它一個目標，它會自己重複「想 → 動手 → 看結果 → 再想」，直到完成。這個不停重複的過程，叫做 Agent 迴圈 (Agent Loop)。", "list": [{"name": "接收目標", "en": "Goal / Prompt", "what": "你告訴它要達成什麼，例如「幫我把這個資料夾裡的照片整理好」。它先讀懂你的目標。", "analogy": "老闆交代任務給員工"}, {"name": "思考規劃", "en": "Reasoning / Planning", "what": "AI 的「大腦」（大型語言模型）先想一想：要分成哪幾步？下一步該做什麼？", "analogy": "員工在腦中排好待辦清單"}, {"name": "使用工具", "en": "Tool Use", "what": "光會想沒用，它會實際「動手」：上網搜尋、讀寫檔案、執行程式指令、呼叫別的軟體。這是 Agent 和普通聊天 AI 最大的差別。", "analogy": "員工真的去拿工具、打電話、開電腦做事"}, {"name": "觀察結果", "en": "Observation", "what": "動手後會拿到回饋：搜尋結果、程式有沒有報錯、檔案存不存在。它把這個結果讀進來。", "analogy": "做完一步，看看成果對不對"}, {"name": "反覆修正", "en": "Loop", "what": "根據結果再回到「思考」那步，決定下一步或修正錯誤，一直循環到任務完成才停。", "analogy": "沒做對就再試一次，直到把事情辦好"}], "summary": "Agent = 大腦(會思考) + 手腳(會用工具) + 一個不停「想→做→看→再想」的迴圈。"}, "table": {"heading": "常聽到的名詞，其實可以分成三類", "columns": ["名詞", "白話解釋", "屬於哪一類"], "rows": [{"cells": ["大型語言模型 (LLM)", "Agent 的「大腦」，負責理解與思考，例如 Claude、GPT。它本身不會動手，只會產生文字或決定。"], "group": "大腦（負責思考）"}, {"cells": ["提示詞 (Prompt)", "你給大腦的指令與情境說明，等於「交代任務的那段話」。"], "group": "大腦（負責思考）"}, {"cells": ["工具 (Tool)", "大腦能呼叫的實際能力：搜尋、讀寫檔案、執行指令、查資料庫。等於 Agent 的「手腳」。"], "group": "能力（負責動手）"}, {"cells": ["記憶 (Memory)", "把之前做過、學到的事存起來下次用，避免每次都從零開始。"], "group": "能力（負責動手）"}, {"cells": ["Agent 外殼 (Harness)", "把大腦、工具、記憶、迴圈、安全規則全部「包起來、串起來」的那層程式。它負責讓大腦真的能一步步動手，也負責踩煞車（危險動作要先問你）。"], "group": "外殼（負責串起來）"}, {"cells": ["MCP（工具連接標準）", "一種「共通插頭規格」，讓 Agent 可以安全地接上各種外部工具或資料來源，像 USB 插孔一樣隨插隨用。"], "group": "外殼（負責串起來）"}, {"cells": ["多代理 (Multi-Agent)", "一個主 Agent 把工作拆給好幾個小 Agent 分頭並行處理，最後再彙整。像一個團隊分工。"], "group": "外殼（負責串起來）"}]}, "memory": {"heading": "幫你記住的重點", "list": ["普通 AI「只會回答」，Agent「會自己動手做完整件事」——差別就在會不會用工具、會不會反覆循環。", "Harness（外殼）是 2024 年後很紅的關鍵字：它不是大腦本身，而是「大腦的身體與安全帶」——負責串起迴圈、接上工具、管理記憶、在危險動作前踩煞車。", "換句話說：模型再聰明，也要有好的 Harness 才能真正把事情安全地做完。你每天用的 Claude Code，本身就是一個 Agent Harness。", "記法：大腦(LLM)負責想、工具(Tool)負責做、外殼(Harness)負責把大家串起來並顧安全。"]}}</script>
+<script>
+const GROUP_COLORS = ["#E8A13A","#2E9E5B","#2E75B6","#8E24AA","#C62828","#00838F"];
+const THEMES = {
+  blue:["#1F4E79","#2E75B6","#DEEAF6"], green:["#2E7D32","#43A047","#E3F2E4"],
+  orange:["#C2620A","#F59E0B","#FBE9D0"], purple:["#6A1B9A","#8E24AA","#EDE1F3"],
+  red:["#B3261E","#E53935","#FBE0DE"]
+};
+const VISUAL_LABELS = {
+  bright:{icon:"🔆",cap:"全黑畫面 → 找找那顆關不掉的亮點"},
+  dark:{icon:"⚫",cap:"全白畫面 → 找找那個擦不掉的黑點"},
+  mura:{icon:"🌫️",cap:"亮度不均，深淺不勻"},
+  leak:{icon:"💡",cap:"邊角滲出多餘的光"}
+};
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+const data = JSON.parse(document.getElementById('content').textContent);
+const app = document.getElementById('app');
+
+// 主題色
+const th = THEMES[data.theme] || THEMES.blue;
+const r = document.documentElement.style;
+r.setProperty('--primary',th[0]); r.setProperty('--primary2',th[1]); r.setProperty('--light',th[2]);
+
+// 標題
+const head = el('header');
+head.appendChild(el('h1',null,'🔎 '+esc(data.title||'')));
+if(data.subtitle) head.appendChild(el('p',null,esc(data.subtitle)));
+app.appendChild(head);
+document.title = data.title || '互動說明';
+
+// ① 步驟
+if(data.steps && data.steps.list && data.steps.list.length){
+  const s=data.steps, sec=el('section');
+  sec.appendChild(el('h2',null,'① '+esc(s.heading||'流程')+' <span class="hint">← 點卡片</span>'));
+  if(s.intro) sec.appendChild(el('p',null,esc(s.intro)));
+  const grid=el('div','steps');
+  const details=[];
+  s.list.forEach((it,i)=>{
+    const c=el('div','step');c.dataset.i=i;
+    c.innerHTML=`<div class="num">${i+1}</div><div class="name">${esc(it.name||'')}</div>`+
+                (it.en?`<div class="en">${esc(it.en)}</div>`:'');
+    grid.appendChild(c);
+    details.push(`<b>第${i+1}關 · ${esc(it.name||'')}</b><br>${esc(it.what||'')}`+
+                 (it.analogy?`<br>💡 就像：${esc(it.analogy)}`:''));
+  });
+  sec.appendChild(grid);
+  const detail=el('div','detail','👆 點上面任一項看說明。');
+  sec.appendChild(detail);
+  if(s.summary) sec.appendChild(el('div','summary','📌 '+esc(s.summary)));
+  app.appendChild(sec);
+  grid.querySelectorAll('.step').forEach(st=>st.addEventListener('click',()=>{
+    grid.querySelectorAll('.step').forEach(x=>x.classList.remove('active'));
+    st.classList.add('active'); detail.innerHTML=details[st.dataset.i];
+  }));
+}
+
+// ② 視覺模擬器（可選：只有 rows 帶 visual 才出現）
+const rows=(data.table&&data.table.rows)||[];
+const visuals=[...new Set(rows.map(x=>x.visual).filter(v=>v&&VISUAL_LABELS[v]))];
+if(visuals.length){
+  const sec=el('section');
+  sec.appendChild(el('h2',null,'② 親眼看毛病 <span class="hint">← 點按鈕看變化</span>'));
+  const sim=el('div','sim');
+  sim.innerHTML=`<div><div class="screen-box"><div class="screen" id="screen">
+    <div class="leak" id="leak"></div><div class="mura" id="mura"></div></div></div>
+    <div class="caption" id="cap">目前：正常畫面</div></div>
+    <div class="controls" id="controls"><button class="btn active" data-d="none">✅ 正常</button></div>`;
+  sec.appendChild(sim); app.appendChild(sec);
+  const controls=sim.querySelector('#controls');
+  visuals.forEach(v=>{
+    const row=rows.find(x=>x.visual===v)||{};
+    const label=(row.cells&&row.cells[0])||v;
+    const b=el('button','btn',`${VISUAL_LABELS[v].icon} ${esc(label)}`);
+    b.dataset.d=v; controls.appendChild(b);
+  });
+  const screen=sim.querySelector('#screen'),leak=sim.querySelector('#leak'),mura=sim.querySelector('#mura'),cap=sim.querySelector('#cap');
+  controls.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+    controls.querySelectorAll('.btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+    const d=b.dataset.d;
+    screen.querySelectorAll('.dot').forEach(x=>x.remove());
+    leak.classList.remove('on');mura.classList.remove('on');
+    screen.classList.toggle('white',d==='dark');
+    if(d==='bright'||d==='dark'){const dot=el('div','dot '+d);dot.style.left=(25+Math.random()*50)+'%';dot.style.top=(25+Math.random()*50)+'%';screen.appendChild(dot);}
+    else if(d==='mura')mura.classList.add('on');
+    else if(d==='leak')leak.classList.add('on');
+    cap.textContent='目前：'+(d==='none'?'正常畫面':VISUAL_LABELS[d].cap);
+  }));
+}
+
+// ③ 分類對照表
+if(data.table && rows.length){
+  const t=data.table, sec=el('section');
+  const n=visuals.length?'③':'②';
+  sec.appendChild(el('h2',null,n+' '+esc(t.heading||'分類對照')));
+  const groups=[...new Set(rows.map(x=>x.group).filter(g=>g))];
+  const gColor=g=>GROUP_COLORS[groups.indexOf(g)%GROUP_COLORS.length];
+  const tbl=el('table');
+  const cols=t.columns||[];
+  tbl.innerHTML='<thead><tr>'+cols.map(c=>`<th>${esc(c)}</th>`).join('')+'</tr></thead>';
+  const tb=el('tbody');
+  rows.forEach(row=>{
+    const tr=el('tr');
+    const cells=(row.cells||[]).map(c=>`<td>${esc(c)}</td>`).join('');
+    let last='';
+    if(cols.length>(row.cells||[]).length){
+      last=row.group?`<td><span class="tag" style="background:${gColor(row.group)}">${esc(row.group)}</span></td>`:'<td></td>';
+    }
+    tr.innerHTML=cells+last; tb.appendChild(tr);
+  });
+  tbl.appendChild(tb); sec.appendChild(tbl);
+  if(groups.length){
+    const lg=el('div','legend');
+    groups.forEach(g=>lg.appendChild(el('span',null,`<i class="sw" style="background:${gColor(g)}"></i>${esc(g)}`)));
+    sec.appendChild(lg);
+  }
+  app.appendChild(sec);
+}
+
+// ④ 記憶重點
+if(data.memory && data.memory.list && data.memory.list.length){
+  const m=data.memory, sec=el('section');
+  let n='②'; if(data.steps) n=visuals.length?'④':'③'; else if(rows.length) n=visuals.length?'④':'③';
+  sec.appendChild(el('h2',null,n+' '+esc(m.heading||'記住的重點')));
+  const ul=el('ul','mem');
+  m.list.forEach(x=>ul.appendChild(el('li',null,esc(x))));
+  sec.appendChild(ul); app.appendChild(sec);
+}
+</script>
+</body>
+</html>
